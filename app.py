@@ -2,8 +2,17 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from PIL import Image
 from io import BytesIO
+from google.oauth2 import service_account
 from google.cloud import vision
 import ingredient_data
+import os
+import json
+
+credentials_json = os.getenv('GOOGLE_CREDENTIALS_JSON')
+if credentials_json:
+    credentials_dict = json.loads(credentials_json)
+    credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+    client = vision.ImageAnnotatorClient(credentials=credentials)
 
 
 app = Flask(__name__)
