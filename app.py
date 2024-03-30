@@ -7,24 +7,34 @@ from google.cloud import vision
 import ingredient_data
 import os
 import json
-
-credentials_json = os.getenv('GOOGLE_CREDENTIALS_JSON')
-if credentials_json:
-    credentials_dict = json.loads(credentials_json)
-    credentials = service_account.Credentials.from_service_account_info(credentials_dict)
-    client = vision.ImageAnnotatorClient(credentials=credentials)
+import base64
 
 
 app = Flask(__name__)
 CORS(app)
 
+def get_vision_client():
+    # Decode the environment variable into JSON
+    credentials_base64 = os.getenv('GOOGLE_CREDENTIALS_BASE64')
+    if credentials_base64 is None:
+        raise Exception("Google Cloud credentials not found in environment variables.")
+    
+    credentials_json = base64.b64decode(credentials_base64)
+    credentials_dict = json.loads(credentials_json)
+    
+    # Authenticate with the Google Cloud Vision API using decoded credentials
+    credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+    client = vision.ImageAnnotatorClient(credentials=credentials)
+    return client
+
 def process_image(image_bytes):
-    client = vision.ImageAnnotatorClient()
+    client = get_vision_client()  # Use the authenticated client
     image = vision.Image(content=image_bytes)
     response = client.text_detection(image=image)
     texts = response.text_annotations
     result_string = texts[0].description if texts else ""
     return result_string
+
 
 def find_matches(result_string, setting):
     selected_list = getattr(ingredient_data, setting, [])
